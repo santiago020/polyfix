@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMI & Panel de Control 100% MANUAL (PLC S7-1500 & Unity Direct Bridge)</title>
+    <title>HMI & Panel de Control Manual (Enlace SQLite / Base de Datos)</title>
     <!-- Chart.js para gráficas dinámicas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -25,17 +25,31 @@
         header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
         .h-title { display: flex; align-items: center; gap: 12px; }
         .h-title h1 { font-size: 20px; color: var(--primary); font-weight: 700; }
-        .tag-manual { background: #b45309; color: #fde68a; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; border: 1px solid #d97706; }
+        .tag-db { background: #065f46; color: #a7f3d0; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; border: 1px solid #059669; }
         .nav-link { color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; }
         .nav-link:hover { background: var(--card); }
 
-        .layout-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
-        @media(max-width: 980px) { .layout-grid { grid-template-columns: 1fr; } }
+        .layout-grid { display: grid; grid-template-columns: 400px 1fr; gap: 20px; }
+        @media(max-width: 1000px) { .layout-grid { grid-template-columns: 1fr; } }
 
         .panel-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
         .box-title { font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* ACCIONES MANUALES PASO A PASO */
+        /* VÁLVULAS CON ESTADO BINARIO (1 / 0) */
+        .valves-list { display: flex; flex-direction: column; gap: 10px; }
+        .valve-row { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+        .valve-info { display: flex; flex-direction: column; gap: 2px; }
+        .valve-title { font-size: 12px; font-weight: 700; color: #f8fafc; }
+        .valve-sub { font-size: 10px; color: #94a3b8; }
+        
+        .valve-ctrl { display: flex; align-items: center; gap: 8px; }
+        .bit-tag { font-family: monospace; font-size: 14px; font-weight: 800; padding: 4px 8px; border-radius: 6px; background: #0f172a; border: 1px solid #334155; color: #94a3b8; }
+        .bit-tag.active { background: #065f46; border-color: #10b981; color: #34d399; }
+
+        .btn-valve { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #475569; background: #334155; color: #94a3b8; cursor: pointer; transition: all 0.2s; min-width: 90px; text-align: center; }
+        .btn-valve.active { background: #059669; border-color: #10b981; color: #ffffff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+
+        /* ACCIONES MANUALES */
         .manual-actions { display: flex; flex-direction: column; gap: 8px; }
         .btn-action { padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; }
         .btn-step { background: #1e3a8a; border-color: #3b82f6; color: #ffffff; }
@@ -50,15 +64,6 @@
         .btn-st4:hover { background: #4c1d95; }
 
         .action-tag { font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 4px; background: rgba(0,0,0,0.4); }
-
-        /* VÁLVULAS INTERACTIVAS CON SWITCHES */
-        .valves-list { display: flex; flex-direction: column; gap: 8px; }
-        .valve-row { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
-        .valve-info { display: flex; flex-direction: column; gap: 2px; }
-        .valve-title { font-size: 12px; font-weight: 700; color: #f8fafc; }
-        .valve-sub { font-size: 10px; color: #94a3b8; }
-        .btn-valve { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #475569; background: #334155; color: #94a3b8; cursor: pointer; transition: all 0.2s; min-width: 85px; text-align: center; }
-        .btn-valve.active { background: #059669; border-color: #10b981; color: #ffffff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
 
         /* Sliders de Señales */
         .signal-group { display: flex; flex-direction: column; gap: 10px; }
@@ -89,107 +94,117 @@
 <body>
     <header>
         <div class="h-title">
-            <h1>🔬 HMI & BANCO DE CONTROL 100% MANUAL</h1>
-            <span class="tag-manual">Direct Unity Bridge</span>
+            <h1>🔬 PANEL HMI CONECTADO A BASE DE DATOS SQLITE</h1>
+            <span class="tag-db">Base de Datos SQLite (.db / .sql)</span>
         </div>
         <a href="index.html" class="nav-link">➔ Ir al Dashboard General</a>
     </header>
 
     <div class="layout-grid">
-        <!-- COLUMNA 1: ACCIONES MANUALES DE LA LÍNEA -->
+        <!-- COLUMNA 1: VÁLVULAS BINARIAS (1 / 0) Y ACCIONES -->
         <div class="panel-box">
-            <div class="box-title">🎮 Mando Manual de la Línea (Paso a Paso)</div>
-            
-            <div class="manual-actions">
-                <button class="btn-action btn-step" onclick="ejecutarPasoBanda()">
-                    <span>🟢 <b>Avanzar Banda 1 Paso</b> (Indexar 0.40m)</span>
-                    <span class="action-tag">TECLA ESPACIO</span>
-                </button>
-                <button class="btn-action btn-st1" onclick="ejecutarEtiquetado()">
-                    <span>🏷️ <b>Estación 1: Aplicar Etiqueta Vinilo</b></span>
-                    <span class="action-tag">TECLA 1</span>
-                </button>
-                <button class="btn-action btn-st2" id="btn-action-llenado" onclick="ejecutarLlenado()">
-                    <span>🚰 <b>Estación 2: Abrir Boquilla Llenado PVA</b></span>
-                    <span class="action-tag">TECLA 2</span>
-                </button>
-                <button class="btn-action btn-st3" onclick="ejecutarPonerTapa()">
-                    <span>🧢 <b>Estación 3: Liberar y Colocar Tapa</b></span>
-                    <span class="action-tag">TECLA 3</span>
-                </button>
-                <button class="btn-action btn-st4" id="btn-action-enroscado" onclick="ejecutarEnroscado()">
-                    <span>⚡ <b>Estación 4: Enroscar con Servomotor PTI</b></span>
-                    <span class="action-tag">TECLA 4</span>
-                </button>
-            </div>
-
-            <div class="box-title">🚰 Control Directo de Válvulas (Abrir / Cerrar a Voluntad)</div>
+            <div class="box-title">🚰 Control de Válvulas en Base de Datos (1 = ABIERTA, 0 = CERRADA)</div>
             <div class="valves-list">
                 <div class="valve-row">
                     <div class="valve-info">
                         <span class="valve-title">Válvula V101 (PVA)</span>
-                        <span class="valve-sub">Tanque TK-101 ➔ Reactor TK-201</span>
+                        <span class="valve-sub">TK-101 ➔ Reactor TK-201</span>
                     </div>
-                    <button class="btn-valve" id="btn-v-pva" onclick="toggleValve('v-pva', 'plc_valvula_pva', 'V101 PVA')">CERRADA</button>
+                    <div class="valve-ctrl">
+                        <span class="bit-tag" id="bit-v-pva">0</span>
+                        <button class="btn-valve" id="btn-v-pva" onclick="toggleValveDB('valvula_pva', 'v-pva', 'V101 PVA')">CERRADA</button>
+                    </div>
                 </div>
                 <div class="valve-row">
                     <div class="valve-info">
                         <span class="valve-title">Válvula V102 (Agua)</span>
-                        <span class="valve-sub">Tanque TK-102 ➔ Reactor TK-201</span>
+                        <span class="valve-sub">TK-102 ➔ Reactor TK-201</span>
                     </div>
-                    <button class="btn-valve" id="btn-v-agua" onclick="toggleValve('v-agua', 'plc_valvula_agua', 'V102 Agua')">CERRADA</button>
+                    <div class="valve-ctrl">
+                        <span class="bit-tag" id="bit-v-agua">0</span>
+                        <button class="btn-valve" id="btn-v-agua" onclick="toggleValveDB('valvula_agua', 'v-agua', 'V102 Agua')">CERRADA</button>
+                    </div>
                 </div>
                 <div class="valve-row">
                     <div class="valve-info">
                         <span class="valve-title">Válvula V103 (Glicerina)</span>
-                        <span class="valve-sub">Tanque TK-103 ➔ Reactor TK-201</span>
+                        <span class="valve-sub">TK-103 ➔ Reactor TK-201</span>
                     </div>
-                    <button class="btn-valve" id="btn-v-glic" onclick="toggleValve('v-glic', 'plc_valvula_glicerina', 'V103 Glicerina')">CERRADA</button>
+                    <div class="valve-ctrl">
+                        <span class="bit-tag" id="bit-v-glic">0</span>
+                        <button class="btn-valve" id="btn-v-glic" onclick="toggleValveDB('valvula_glicerina', 'v-glic', 'V103 Glicerina')">CERRADA</button>
+                    </div>
                 </div>
                 <div class="valve-row">
                     <div class="valve-info">
                         <span class="valve-title">Válvula V201 (Llenado)</span>
-                        <span class="valve-sub">Boquilla de Dosificación a Botella</span>
+                        <span class="valve-sub">Boquilla Dosificación a Botella</span>
                     </div>
-                    <button class="btn-valve" id="btn-v-llen" onclick="toggleValve('v-llen', 'plc_valvula_llenado', 'V201 Llenado Botella')">CERRADA</button>
+                    <div class="valve-ctrl">
+                        <span class="bit-tag" id="bit-v-llen">0</span>
+                        <button class="btn-valve" id="btn-v-llen" onclick="toggleValveDB('valvula_llenado', 'v-llen', 'V201 Llenado Botella')">CERRADA</button>
+                    </div>
                 </div>
                 <div class="valve-row">
                     <div class="valve-info">
                         <span class="valve-title">M201 Motor Agitador</span>
                         <span class="valve-sub">Mezclador del Reactor TK-201</span>
                     </div>
-                    <button class="btn-valve" id="btn-v-mezc" onclick="toggleValve('v-mezc', 'plc_motor_enroscado', 'M201 Motor Agitador')">APAGADO</button>
+                    <div class="valve-ctrl">
+                        <span class="bit-tag" id="bit-v-mezc">0</span>
+                        <button class="btn-valve" id="btn-v-mezc" onclick="toggleValveDB('bomba_mezclador', 'v-mezc', 'M201 Motor Agitador')">APAGADO</button>
+                    </div>
                 </div>
+            </div>
+
+            <div class="box-title">🎮 Acciones Manuales de Planta (Paso a Paso)</div>
+            <div class="manual-actions">
+                <button class="btn-action btn-step" onclick="ejecutarAccion('paso_banda', 'Avanzar Banda 1 Paso')">
+                    <span>🟢 <b>Avanzar Banda 1 Paso</b> (Indexar 0.40m)</span>
+                    <span class="action-tag">SQL / PLC</span>
+                </button>
+                <button class="btn-action btn-st1" onclick="ejecutarAccion('etiquetar', 'Aplicar Etiqueta Vinilo')">
+                    <span>🏷️ <b>Estación 1: Aplicar Etiqueta Vinilo</b></span>
+                    <span class="action-tag">X = -0.80m</span>
+                </button>
+                <button class="btn-action btn-st3" onclick="ejecutarAccion('poner_tapa', 'Colocar Tapa Azul')">
+                    <span>🧢 <b>Estación 3: Liberar y Colocar Tapa</b></span>
+                    <span class="action-tag">X = +0.80m</span>
+                </button>
+                <button class="btn-action btn-st4" onclick="ejecutarAccion('enroscar', 'Enroscar Servomotor PTI')">
+                    <span>⚡ <b>Estación 4: Enroscar con Servomotor PTI</b></span>
+                    <span class="action-tag">X = +1.60m</span>
+                </button>
             </div>
 
             <div class="box-title">🎛️ Transmisores Analógicos (PCB AI)</div>
             <div class="signal-group">
                 <div class="signal-row">
                     <div class="signal-label"><span>TK-101 (Materia PVA)</span><b id="lbl-tk101">75 %</b></div>
-                    <input type="range" id="rng-tk101" min="0" max="100" value="75" oninput="updateTank('tk101', this.value)">
+                    <input type="range" id="rng-tk101" min="0" max="100" value="75" oninput="cambiarTanque('tk101_pva', this.value, 'lbl-tk101')">
                 </div>
                 <div class="signal-row">
                     <div class="signal-label"><span>TK-102 (Agua de Proceso)</span><b id="lbl-tk102">80 %</b></div>
-                    <input type="range" id="rng-tk102" min="0" max="100" value="80" oninput="updateTank('tk102', this.value)">
+                    <input type="range" id="rng-tk102" min="0" max="100" value="80" oninput="cambiarTanque('tk102_agua', this.value, 'lbl-tk102')">
                 </div>
                 <div class="signal-row">
                     <div class="signal-label"><span>TK-103 (Glicerina)</span><b id="lbl-tk103">65 %</b></div>
-                    <input type="range" id="rng-tk103" min="0" max="100" value="65" oninput="updateTank('tk103', this.value)">
+                    <input type="range" id="rng-tk103" min="0" max="100" value="65" oninput="cambiarTanque('tk103_glicerina', this.value, 'lbl-tk103')">
                 </div>
                 <div class="signal-row">
                     <div class="signal-label"><span>TK-201 (Reactor Mezcla P-85)</span><b id="lbl-tk201">50 %</b></div>
-                    <input type="range" id="rng-tk201" min="0" max="100" value="50" oninput="updateTank('tk201', this.value)">
+                    <input type="range" id="rng-tk201" min="0" max="100" value="50" oninput="cambiarTanque('tk201_mezcla', this.value, 'lbl-tk201')">
                 </div>
             </div>
         </div>
 
-        <!-- COLUMNA 2: MONITOREO EN TIEMPO REAL Y GRÁFICAS -->
+        <!-- COLUMNA 2: MONITOREO EN TIEMPO REAL Y GRÁFICAS DESDE DB -->
         <div class="monitor-col">
             <div class="metrics-row">
                 <div class="metric-card">
-                    <div class="metric-title">Modo de Operación</div>
-                    <div class="metric-value" style="color:var(--warning);">100% MANUAL</div>
-                    <div class="metric-desc">Control Paso a Paso</div>
+                    <div class="metric-title">Base de Datos SQLite</div>
+                    <div class="metric-value" id="m-db-status" style="color:var(--success); font-size:18px;">CONECTADA</div>
+                    <div class="metric-desc">polyfix_produccion.db</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Torque Servomotor</div>
@@ -199,72 +214,54 @@
                 <div class="metric-card">
                     <div class="metric-title">Botellas Producidas</div>
                     <div class="metric-value" id="m-botellas">0</div>
-                    <div class="metric-desc">Terminadas manualmente</div>
+                    <div class="metric-desc">Insertadas en Tabla SQLite</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">Última Acción</div>
-                    <div class="metric-value" id="m-accion" style="font-size: 15px; color: var(--primary);">EN ESPERA</div>
-                    <div class="metric-desc" id="m-accion-sub">Listo para recibir comando</div>
+                    <div class="metric-title">Último Estado</div>
+                    <div class="metric-value" id="m-accion" style="font-size: 15px; color: var(--primary);">LISTO_MANUAL</div>
+                    <div class="metric-desc" id="m-accion-sub">Esperando comando</div>
                 </div>
             </div>
 
             <div class="charts-container">
                 <div class="chart-box">
-                    <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:8px;">📊 CURVA DE PAR DE APRIETE SERVOMOTOR (Nm)</div>
+                    <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:8px;">📊 HISTORIAL DE PAR DE APRIETE SERVOMOTOR (Nm)</div>
                     <canvas id="chartTorqueLive"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:8px;">🛢️ NIVELES ANALÓGICOS DE TANQUES (% PCB)</div>
+                    <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:8px;">🛢️ HISTORIAL DE NIVELES DE TANQUES (% SQL)</div>
                     <canvas id="chartTanksLive"></canvas>
                 </div>
             </div>
 
             <div class="panel-box">
-                <div class="box-title">📜 Registro de Acciones Manuales (HMI ➔ SQLite Database)</div>
+                <div class="box-title">📜 Registro de Transacciones SQL (Inserts en SQLite)</div>
                 <div class="log-box" id="log-console">
-                    <div class="log-ok">[SISTEMA] Modo 100% Manual activo. Cero temporizadores automáticos.</div>
-                    <div class="log-ok">[UNITY / PLC] Comandos enlazados con atajos de teclado [Espacio, 1, 2, 3, 4].</div>
-                    <div>[SQLite] Base de datos local polyfix_produccion.db lista para registrar cada paso.</div>
+                    <div class="log-ok">[SQLite] Conexión abierta con polyfix_produccion.db.</div>
+                    <div class="log-ok">[SCADA] Cada apertura de válvula escribe un 1 en la base de datos; al cerrar escribe un 0.</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let botellas = 0;
-        let torqueActual = 0.0;
-        let tk101 = 75, tk102 = 80, tk103 = 65, tk201 = 50;
-
-        let llenadoActivo = false;
-        let enroscadoActivo = false;
-
-        const valveStates = {
-            'v-pva': false,
-            'v-agua': false,
-            'v-glic': false,
-            'v-llen': false,
-            'v-mezc': false
+        const valveValues = {
+            'valvula_pva': 0,
+            'valvula_agua': 0,
+            'valvula_glicerina': 0,
+            'valvula_llenado': 0,
+            'bomba_mezclador': 0
         };
 
-        async function sendCommand(cmdObj) {
-            try {
-                await fetch('/api/command', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(cmdObj)
-                });
-            } catch(e) {
-                try {
-                    await fetch('http://localhost:8080/api/command', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cmdObj)
-                    });
-                } catch(err) {}
-            }
-        }
+        const valveBtnMap = {
+            'valvula_pva': 'v-pva',
+            'valvula_agua': 'v-agua',
+            'valvula_glicerina': 'v-glic',
+            'valvula_llenado': 'v-llen',
+            'bomba_mezclador': 'v-mezc'
+        };
 
-        // Gráfica de Torque
+        // Gráficas
         const ctxTorque = document.getElementById('chartTorqueLive').getContext('2d');
         const chartTorque = new Chart(ctxTorque, {
             type: 'line',
@@ -272,13 +269,12 @@
                 labels: [],
                 datasets: [
                     { label: 'Torque Medido (Nm)', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 0 },
-                    { label: 'Setpoint Receta (2.5 Nm)', data: [], borderColor: '#ef4444', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 }
+                    { label: 'Setpoint (2.5 Nm)', data: [], borderColor: '#ef4444', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 4.5, ticks: { color: '#64748b' } } }, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } } }
         });
 
-        // Gráfica de Tanques
         const ctxTanks = document.getElementById('chartTanksLive').getContext('2d');
         const chartTanks = new Chart(ctxTanks, {
             type: 'line',
@@ -304,108 +300,105 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        function setAccion(titulo, sub) {
-            document.getElementById('m-accion').innerText = titulo;
-            document.getElementById('m-accion-sub').innerText = sub;
+        async function postAPI(url, data) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                return await res.json();
+            } catch(e) {
+                return null;
+            }
         }
 
-        function ejecutarPasoBanda() {
-            setAccion("INDEXANDO BANDA", "Avanzando 1 posición (0.40m)");
-            logMsg("🟢 MANUAL: Orden de avance de banda enviada a Unity. Botellas indexadas 1 paso hacia adelante.");
-            sendCommand({ plc_marcha_banda: true });
+        async function toggleValveDB(field, uiId, name) {
+            const nuevoValor = valveValues[field] === 1 ? 0 : 1;
+            valveValues[field] = nuevoValor;
+
+            actualizarUIVelvula(field, uiId, nuevoValor);
+
+            const res = await postAPI('/api/valvula', { valvula: field, valor: nuevoValor });
+            const textoEstado = nuevoValor === 1 ? 'ABIERTA' : 'CERRADA';
+            logMsg(`💾 SQL UPDATE -> ${name} = [${nuevoValor}] (${textoEstado}) guardado en polyfix_produccion.db`);
         }
 
-        function ejecutarEtiquetado() {
-            setAccion("ETIQUETADO OK", "Vinilo P-85 aplicado en X = -0.80m");
-            logMsg("🏷️ MANUAL Estación 1: Carrete y rodillos girando. Etiqueta frontal aplicada.");
-            sendCommand({ plc_etiquetar: true });
-        }
+        function actualizarUIVelvula(field, uiId, valor) {
+            const btn = document.getElementById(`btn-${uiId}`);
+            const bit = document.getElementById(`bit-${uiId}`);
+            const isMezc = field === 'bomba_mezclador';
+            
+            if (bit) {
+                bit.innerText = valor;
+                bit.classList.toggle('active', valor === 1);
+            }
 
-        function ejecutarLlenado() {
-            llenadoActivo = !llenadoActivo;
-            valveStates['v-llen'] = llenadoActivo;
-            const btn = document.getElementById('btn-v-llen');
             if (btn) {
-                btn.classList.toggle('active', llenadoActivo);
-                btn.innerText = llenadoActivo ? 'ABIERTA' : 'CERRADA';
+                btn.classList.toggle('active', valor === 1);
+                if (isMezc) {
+                    btn.innerText = valor === 1 ? 'ENCENDIDO' : 'APAGADO';
+                } else {
+                    btn.innerText = valor === 1 ? 'ABIERTA' : 'CERRADA';
+                }
             }
-            if (llenadoActivo) {
-                setAccion("LLENANDO PVA", "Boquilla vertiendo adhesivo en X = 0.00m");
-                logMsg("🚰 MANUAL Estación 2: Válvula de llenado ABIERTA. Dosificando adhesivo en botella.");
-            } else {
-                setAccion("LLENADO CERRADO", "Boquilla sellada");
-                logMsg("🚰 MANUAL Estación 2: Válvula de llenado CERRADA.");
-            }
-            sendCommand({ plc_valvula_llenado: llenadoActivo });
         }
 
-        function ejecutarPonerTapa() {
-            setAccion("TAPA COLOCADA", "Compuerta liberó tapa en X = +0.80m");
-            logMsg("🧢 MANUAL Estación 3: Compuerta neumática abierta. Tapa azul asentada sobre el cuello.");
-            sendCommand({ plc_compuerta_tapas: true });
+        async function ejecutarAccion(tipo, label) {
+            document.getElementById('m-accion').innerText = tipo.toUpperCase();
+            document.getElementById('m-accion-sub').innerText = `Ejecutando: ${label}`;
+            logMsg(`⚙️ ACCIÓN EJECUTADA: ${label} -> Registro insertado en Base de Datos.`);
+            await postAPI('/api/accion', { accion: tipo });
         }
 
-        function ejecutarEnroscado() {
-            enroscadoActivo = !enroscadoActivo;
-            if (enroscadoActivo) {
-                setAccion("ENROSCANDO PTI", "Servomotor aplicando 2.50 Nm en X = +1.60m");
-                torqueActual = 2.51;
-                document.getElementById('m-torque').innerText = '2.51 Nm';
-                botellas++;
-                document.getElementById('m-botellas').innerText = botellas;
-                logMsg("⚡ MANUAL Estación 4: Mordazas cerradas. Servomotor PTI ejecutó 2 vueltas a 2.51 Nm.");
-            } else {
-                setAccion("ENROSCADO LISTO", "Mordazas liberadas");
-                torqueActual = 0.0;
-                document.getElementById('m-torque').innerText = '0.00 Nm';
-                logMsg("⚡ MANUAL Estación 4: Cabezal elevado a posición de reposo.");
-            }
-            sendCommand({ plc_motor_enroscado: enroscadoActivo });
+        async function cambiarTanque(campo, val, lblId) {
+            document.getElementById(lblId).innerText = val + ' %';
+            await postAPI('/api/tanque', { tanque: campo, valor: parseFloat(val) });
         }
 
-        function toggleValve(id, plcKey, name) {
-            valveStates[id] = !valveStates[id];
-            const btn = document.getElementById(`btn-${id}`);
-            if (btn) {
-                btn.classList.toggle('active', valveStates[id]);
-                btn.innerText = valveStates[id] ? (id === 'v-mezc' ? 'ENCENDIDO' : 'ABIERTA') : (id === 'v-mezc' ? 'APAGADO' : 'CERRADA');
-            }
-            const estadoTexto = valveStates[id] ? (id === 'v-mezc' ? 'ENCENDIDO' : 'ABIERTA') : (id === 'v-mezc' ? 'APAGADO' : 'CERRADA');
-            logMsg(`🚰 MANUAL: ${name} cambiada a ${estadoTexto}.`);
-            const p = {};
-            p[plcKey] = valveStates[id];
-            sendCommand(p);
+        // Bucle de lectura de Base de Datos y sincronización en vivo
+        async function sincronizarDesdeDB() {
+            try {
+                const res = await fetch('/api/telemetria?t=' + Date.now());
+                if (res.ok) {
+                    const d = await res.json();
+                    document.getElementById('m-botellas').innerText = d.botellas_total || 0;
+                    document.getElementById('m-torque').innerText = (d.torque_servo_nm || 0).toFixed(2) + ' Nm';
+                    document.getElementById('m-accion').innerText = d.estado_operativo || 'LISTO_MANUAL';
+
+                    for (let f in valveBtnMap) {
+                        if (d[f] !== undefined) {
+                            valveValues[f] = d[f];
+                            actualizarUIVelvula(f, valveBtnMap[f], d[f]);
+                        }
+                    }
+
+                    // Gráfica
+                    const now = new Date().toLocaleTimeString();
+                    if (chartTanks.data.labels.length > 20) {
+                        chartTanks.data.labels.shift();
+                        chartTanks.data.datasets.forEach(x => x.data.shift());
+                        chartTorque.data.labels.shift();
+                        chartTorque.data.datasets.forEach(x => x.data.shift());
+                    }
+
+                    chartTanks.data.labels.push(now);
+                    chartTanks.data.datasets[0].data.push(d.tk101_pva || 75);
+                    chartTanks.data.datasets[1].data.push(d.tk102_agua || 80);
+                    chartTanks.data.datasets[2].data.push(d.tk103_glicerina || 65);
+                    chartTanks.data.datasets[3].data.push(d.tk201_mezcla || 50);
+                    chartTanks.update();
+
+                    chartTorque.data.labels.push(now);
+                    chartTorque.data.datasets[0].data.push(d.torque_servo_nm || 0);
+                    chartTorque.data.datasets[1].data.push(2.5);
+                    chartTorque.update();
+                }
+            } catch(e) {}
         }
 
-        function updateTank(tank, val) {
-            document.getElementById(`lbl-${tank}`).innerText = val + ' %';
-            if (tank === 'tk101') tk101 = parseFloat(val);
-            if (tank === 'tk102') tk102 = parseFloat(val);
-            if (tank === 'tk103') tk103 = parseFloat(val);
-            if (tank === 'tk201') tk201 = parseFloat(val);
-        }
-
-        setInterval(() => {
-            const now = new Date().toLocaleTimeString();
-            if (chartTorque.data.labels.length > 20) {
-                chartTorque.data.labels.shift();
-                chartTorque.data.datasets.forEach(d => d.data.shift());
-                chartTanks.data.labels.shift();
-                chartTanks.data.datasets.forEach(d => d.data.shift());
-            }
-
-            chartTorque.data.labels.push(now);
-            chartTorque.data.datasets[0].data.push(torqueActual);
-            chartTorque.data.datasets[1].data.push(2.5);
-            chartTorque.update();
-
-            chartTanks.data.labels.push(now);
-            chartTanks.data.datasets[0].data.push(tk101);
-            chartTanks.data.datasets[1].data.push(tk201);
-            chartTanks.data.datasets[2].data.push(tk102);
-            chartTanks.data.datasets[3].data.push(tk103);
-            chartTanks.update();
-        }, 1000);
+        setInterval(sincronizarDesdeDB, 1000);
+        sincronizarDesdeDB();
     </script>
 </body>
 </html>
