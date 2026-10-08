@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMI & Panel de Pruebas PLC S7-1500 (Control Manual de Válvulas y PTI)</title>
+    <title>HMI & Panel de Control 100% MANUAL (PLC S7-1500 & PTI)</title>
     <!-- Chart.js para gráficas dinámicas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -25,26 +25,31 @@
         header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
         .h-title { display: flex; align-items: center; gap: 12px; }
         .h-title h1 { font-size: 20px; color: var(--primary); font-weight: 700; }
-        .tag-umng { background: #065f46; color: #6ee7b7; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid #059669; }
+        .tag-manual { background: #b45309; color: #fde68a; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; border: 1px solid #d97706; }
         .nav-link { color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; }
         .nav-link:hover { background: var(--card); }
 
-        .layout-grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
-        @media(max-width: 950px) { .layout-grid { grid-template-columns: 1fr; } }
+        .layout-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+        @media(max-width: 980px) { .layout-grid { grid-template-columns: 1fr; } }
 
         .panel-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
         .box-title { font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* Controles y Botones */
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .btn-start { background: #15803d; color: white; }
-        .btn-start:hover { background: #16a34a; }
-        .btn-stop { background: #991b1b; color: white; }
-        .btn-stop:hover { background: #dc2626; }
-        .btn-emerg { grid-column: span 2; background: #7f1d1d; color: #fecaca; border: 1px solid #b91c1c; font-size: 14px; padding: 12px; }
-        .btn-emerg.active { background: #dc2626; color: white; animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* ACCIONES MANUALES PASO A PASO */
+        .manual-actions { display: flex; flex-direction: column; gap: 8px; }
+        .btn-action { padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; }
+        .btn-step { background: #1e3a8a; border-color: #3b82f6; color: #ffffff; }
+        .btn-step:hover { background: #2563eb; }
+        .btn-st1 { background: #1e293b; border-color: #475569; color: #f8fafc; }
+        .btn-st1:hover { background: #334155; }
+        .btn-st2 { background: #1e293b; border-color: #475569; color: #f8fafc; }
+        .btn-st2:hover { background: #334155; }
+        .btn-st3 { background: #1e293b; border-color: #475569; color: #f8fafc; }
+        .btn-st3:hover { background: #334155; }
+        .btn-st4 { background: #31135e; border-color: #7c3aed; color: #ddd6fe; }
+        .btn-st4:hover { background: #4c1d95; }
+
+        .action-tag { font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 4px; background: rgba(0,0,0,0.4); }
 
         /* VÁLVULAS INTERACTIVAS CON SWITCHES */
         .valves-list { display: flex; flex-direction: column; gap: 8px; }
@@ -62,11 +67,6 @@
         .signal-label b { color: #f8fafc; font-size: 13px; }
         input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #334155; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
-
-        /* Módulo PTI / Servomotor */
-        .pto-card { background: #1e1b4b; border: 1px solid #4338ca; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-        .pto-val { font-size: 18px; font-weight: 800; color: #a5b4fc; font-family: monospace; }
-        .pto-sub { font-size: 11px; color: #818cf8; }
 
         /* Pantalla de Monitoreo / Gráficas */
         .monitor-col { display: flex; flex-direction: column; gap: 20px; }
@@ -89,21 +89,38 @@
 <body>
     <header>
         <div class="h-title">
-            <h1>🔬 HMI & BANCO DE PRUEBAS PLC S7-1500</h1>
-            <span class="tag-umng">Control Manual de Válvulas & PTI</span>
+            <h1>🔬 HMI & BANCO DE CONTROL 100% MANUAL</h1>
+            <span class="tag-manual">Modo Manual Cero Automáticos</span>
         </div>
         <a href="index.html" class="nav-link">➔ Ir al Dashboard General</a>
     </header>
 
     <div class="layout-grid">
-        <!-- COLUMNA 1: CONTROLES DEL PLC, VALVULAS Y PTI -->
+        <!-- COLUMNA 1: ACCIONES MANUALES DE LA LÍNEA -->
         <div class="panel-box">
-            <div class="box-title">🎮 Mando de Planta Físico (DI)</div>
+            <div class="box-title">🎮 Acciones Manuales de la Línea (Paso a Paso)</div>
             
-            <div class="btn-group">
-                <button class="btn btn-start" onclick="setMarcha(true)">▶ START (M0.0)</button>
-                <button class="btn btn-stop" onclick="setMarcha(false)">⏹ STOP (M0.1)</button>
-                <button class="btn btn-emerg" id="btn-emerg" onclick="toggleEmergencia()">🚨 PARO DE EMERGENCIA</button>
+            <div class="manual-actions">
+                <button class="btn-action btn-step" onclick="ejecutarPasoBanda()">
+                    <span>🟢 <b>Avanzar Banda 1 Paso</b> (Indexar 0.40m)</span>
+                    <span class="action-tag">BANDA</span>
+                </button>
+                <button class="btn-action btn-st1" onclick="ejecutarEtiquetado()">
+                    <span>🏷️ <b>Estación 1: Aplicar Etiqueta Vinilo</b></span>
+                    <span class="action-tag">X = -0.80m</span>
+                </button>
+                <button class="btn-action btn-st2" id="btn-action-llenado" onclick="ejecutarLlenado()">
+                    <span>🚰 <b>Estación 2: Abrir Boquilla Llenado PVA</b></span>
+                    <span class="action-tag">X = 0.00m</span>
+                </button>
+                <button class="btn-action btn-st3" onclick="ejecutarPonerTapa()">
+                    <span>🧢 <b>Estación 3: Liberar y Colocar Tapa</b></span>
+                    <span class="action-tag">X = +0.80m</span>
+                </button>
+                <button class="btn-action btn-st4" id="btn-action-enroscado" onclick="ejecutarEnroscado()">
+                    <span>⚡ <b>Estación 4: Enroscar con Servomotor PTI</b></span>
+                    <span class="action-tag">X = +1.60m</span>
+                </button>
             </div>
 
             <div class="box-title">🚰 Control Directo de Válvulas (Abrir / Cerrar a Voluntad)</div>
@@ -145,14 +162,6 @@
                 </div>
             </div>
 
-            <div class="box-title">⚡ Control Servomotor PTI (Pulsos)</div>
-            <div class="pto-card">
-                <div class="signal-label">Tren de Pulsos PTO (Siemens V90): <span id="txt-pto-hz">1,000 Hz</span></div>
-                <div class="pto-val" id="val-pulsos">0 <span style="font-size: 11px;">PULSOS</span></div>
-                <div class="pto-sub">Vueltas: <b id="txt-vueltas">0.0 rev</b> | Resolución: 1,000 PPR</div>
-                <button class="btn" style="background:#4338ca; color:#fff;" onclick="dispararTrenPulsos()">⚡ Enviar Ráfaga PTI (720° / 2 Vueltas)</button>
-            </div>
-
             <div class="box-title">🎛️ Transmisores Analógicos (PCB AI)</div>
             <div class="signal-group">
                 <div class="signal-row">
@@ -171,16 +180,6 @@
                     <div class="signal-label"><span>TK-201 (Reactor Mezcla P-85)</span><b id="lbl-tk201">50 %</b></div>
                     <input type="range" id="rng-tk201" min="0" max="100" value="50" oninput="updateTank('tk201', this.value)">
                 </div>
-                <div class="signal-row">
-                    <div class="signal-label"><span>Variador VFD Banda (0-60 Hz)</span><b id="lbl-vfd">50.0 Hz</b></div>
-                    <input type="range" id="rng-vfd" min="0" max="60" value="50" oninput="updateVFD(this.value)">
-                </div>
-            </div>
-
-            <div class="box-title">📋 Recetas PLC en Base de Datos (Ítem 7)</div>
-            <div class="btn-group">
-                <button class="btn" style="background:#1e293b; border:1px solid #475569; color:#f8fafc;" onclick="setReceta(1)">1. Industrial 1L</button>
-                <button class="btn" style="background:#1e293b; border:1px solid #475569; color:#f8fafc;" onclick="setReceta(2)">2. Rápido (3.5s)</button>
             </div>
         </div>
 
@@ -188,24 +187,24 @@
         <div class="monitor-col">
             <div class="metrics-row">
                 <div class="metric-card">
-                    <div class="metric-title">Estado PLC S7-1500</div>
-                    <div class="metric-value" id="m-estado" style="color:var(--success);">RUN</div>
-                    <div class="metric-desc">Control Actuadores Activo</div>
+                    <div class="metric-title">Modo de Operación</div>
+                    <div class="metric-value" style="color:var(--warning);">100% MANUAL</div>
+                    <div class="metric-desc">Control Paso a Paso</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Torque Servomotor</div>
-                    <div class="metric-value" id="m-torque">2.51 <span style="font-size:14px;">Nm</span></div>
-                    <div class="metric-desc">Setpoint Receta: 2.50 Nm</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">Pulsos Acumulados (PTI)</div>
-                    <div class="metric-value" id="m-pulsos-total" style="color:var(--purple);">2,000</div>
-                    <div class="metric-desc">Tecnología TO S7-1500</div>
+                    <div class="metric-value" id="m-torque">0.00 <span style="font-size:14px;">Nm</span></div>
+                    <div class="metric-desc">Setpoint: 2.50 Nm</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Botellas Producidas</div>
-                    <div class="metric-value" id="m-botellas">14</div>
-                    <div class="metric-desc">Registradas en SQLite (.db)</div>
+                    <div class="metric-value" id="m-botellas">0</div>
+                    <div class="metric-desc">Terminadas manualmente</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Última Acción</div>
+                    <div class="metric-value" id="m-accion" style="font-size: 15px; color: var(--primary);">EN ESPERA</div>
+                    <div class="metric-desc" id="m-accion-sub">Listo para recibir comando</div>
                 </div>
             </div>
 
@@ -221,25 +220,23 @@
             </div>
 
             <div class="panel-box">
-                <div class="box-title">📜 Registro de Transacciones en Vivo (PLC ➔ SQLite Database)</div>
+                <div class="box-title">📜 Registro de Acciones Manuales (HMI ➔ SQLite Database)</div>
                 <div class="log-box" id="log-console">
-                    <div class="log-ok">[SISTEMA] Conexión establecida con el Gemelo Digital POLYFIX P-85.</div>
-                    <div class="log-ok">[PLC S7-1500] Controlador en modo RUN. Válvulas V101, V102, V103, V201 listas para control manual o automático.</div>
-                    <div>[SQLite] Base de datos local polyfix_produccion.db lista para inserciones de válvulas y recetas.</div>
+                    <div class="log-ok">[SISTEMA] Modo 100% Manual activo. Cero temporizadores automáticos.</div>
+                    <div class="log-ok">[PLC S7-1500] Esperando pulsador de avance o activación manual de estación.</div>
+                    <div>[SQLite] Base de datos local polyfix_produccion.db lista para registrar cada paso.</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let sistemaActivo = true;
-        let emergencia = false;
-        let pulsosActuales = 0;
-        let botellas = 14;
-        let torqueActual = 2.51;
-        let ptoHz = 1000;
-        let vfdHz = 50.0;
+        let botellas = 0;
+        let torqueActual = 0.0;
         let tk101 = 75, tk102 = 80, tk103 = 65, tk201 = 50;
+
+        let llenadoActivo = false;
+        let enroscadoActivo = false;
 
         const valveStates = {
             'v-pva': false,
@@ -257,7 +254,7 @@
                 labels: [],
                 datasets: [
                     { label: 'Torque Medido (Nm)', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 0 },
-                    { label: 'Límite Máximo (3.8 Nm)', data: [], borderColor: '#ef4444', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 }
+                    { label: 'Setpoint Receta (2.5 Nm)', data: [], borderColor: '#ef4444', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 4.5, ticks: { color: '#64748b' } } }, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } } }
@@ -289,102 +286,79 @@
             box.scrollTop = box.scrollHeight;
         }
 
+        function setAccion(titulo, sub) {
+            document.getElementById('m-accion').innerText = titulo;
+            document.getElementById('m-accion-sub').innerText = sub;
+        }
+
+        function ejecutarPasoBanda() {
+            setAccion("INDEXANDO BANDA", "Avanzando 1 posición (0.40m)");
+            logMsg("🟢 MANUAL: Orden de avance de banda ejecutada. Botellas indexadas 1 paso hacia adelante.");
+        }
+
+        function ejecutarEtiquetado() {
+            setAccion("ETIQUETADO OK", "Vinilo P-85 aplicado en X = -0.80m");
+            logMsg("🏷️ MANUAL Estación 1: Carrete y rodillos girando. Etiqueta frontal aplicada exitosamente.");
+        }
+
+        function ejecutarLlenado() {
+            llenadoActivo = !llenadoActivo;
+            valveStates['v-llen'] = llenadoActivo;
+            const btn = document.getElementById('btn-v-llen');
+            if (btn) {
+                btn.classList.toggle('active', llenadoActivo);
+                btn.innerText = llenadoActivo ? 'ABIERTA' : 'CERRADA';
+            }
+            if (llenadoActivo) {
+                setAccion("LLENANDO PVA", "Boquilla vertiendo adhesivo en X = 0.00m");
+                logMsg("🚰 MANUAL Estación 2: Válvula de llenado ABIERTA. Dosificando adhesivo blanco en botella.");
+            } else {
+                setAccion("LLENADO CERRADO", "Boquilla sellada");
+                logMsg("🚰 MANUAL Estación 2: Válvula de llenado CERRADA.");
+            }
+        }
+
+        function ejecutarPonerTapa() {
+            setAccion("TAPA COLOCADA", "Compuerta liberó tapa en X = +0.80m");
+            logMsg("🧢 MANUAL Estación 3: Compuerta neumática abierta. Tapa azul asentada sobre el cuello.");
+        }
+
+        function ejecutarEnroscado() {
+            enroscadoActivo = !enroscadoActivo;
+            if (enroscadoActivo) {
+                setAccion("ENROSCANDO PTI", "Servomotor aplicando 2.50 Nm en X = +1.60m");
+                torqueActual = 2.51;
+                document.getElementById('m-torque').innerText = '2.51 Nm';
+                botellas++;
+                document.getElementById('m-botellas').innerText = botellas;
+                logMsg("⚡ MANUAL Estación 4: Mordazas cerradas. Servomotor PTI ejecutó 2 vueltas a 2.51 Nm. Botella completada.");
+            } else {
+                setAccion("ENROSCADO LISTO", "Mordazas liberadas");
+                torqueActual = 0.0;
+                document.getElementById('m-torque').innerText = '0.00 Nm';
+                logMsg("⚡ MANUAL Estación 4: Cabezal elevado a posición de reposo.");
+            }
+        }
+
         function toggleValve(id, name) {
-            if (emergencia) { logMsg("BLOQUEO: Paro de emergencia activo. Válvula bloqueada.", true); return; }
             valveStates[id] = !valveStates[id];
             const btn = document.getElementById(`btn-${id}`);
             if (btn) {
                 btn.classList.toggle('active', valveStates[id]);
-                if (id === 'v-mezc') {
-                    btn.innerText = valveStates[id] ? 'ENCENDIDO' : 'APAGADO';
-                } else {
-                    btn.innerText = valveStates[id] ? 'ABIERTA' : 'CERRADA';
-                }
+                btn.innerText = valveStates[id] ? (id === 'v-mezc' ? 'ENCENDIDO' : 'ABIERTA') : (id === 'v-mezc' ? 'APAGADO' : 'CERRADA');
             }
             const estadoTexto = valveStates[id] ? (id === 'v-mezc' ? 'ENCENDIDO' : 'ABIERTA') : (id === 'v-mezc' ? 'APAGADO' : 'CERRADA');
-            logMsg(`🚰 MANUAL PLC: ${name} cambiada a ${estadoTexto}. Registro guardado en DB.`);
-        }
-
-        function setMarcha(val) {
-            if (emergencia) { logMsg("BLOQUEO: No se puede arrancar con Parada de Emergencia activa.", true); return; }
-            sistemaActivo = val;
-            document.getElementById('m-estado').innerText = val ? 'RUN' : 'STOP';
-            document.getElementById('m-estado').style.color = val ? 'var(--success)' : '#ef4444';
-            logMsg(val ? "COMANDO PLC: START (M0.0) -> Marcha de línea iniciada." : "COMANDO PLC: STOP (M0.1) -> Línea detenida.");
-        }
-
-        function toggleEmergencia() {
-            emergencia = !emergencia;
-            const btn = document.getElementById('btn-emerg');
-            btn.classList.toggle('active', emergencia);
-            if (emergencia) {
-                sistemaActivo = false;
-                document.getElementById('m-estado').innerText = 'EMERGENCIA (ALM_03)';
-                document.getElementById('m-estado').style.color = '#ef4444';
-                // Forzar cierre de todas las válvulas
-                for (let k in valveStates) {
-                    valveStates[k] = false;
-                    const b = document.getElementById(`btn-${k}`);
-                    if (b) {
-                        b.classList.remove('active');
-                        b.innerText = k === 'v-mezc' ? 'APAGADO' : 'CERRADA';
-                    }
-                }
-                logMsg("🚨 ALERTA ALM_03: Pulsador de Paro de Emergencia Activado. Todas las válvulas cerradas por seguridad.", true);
-            } else {
-                document.getElementById('m-estado').innerText = 'STOP';
-                document.getElementById('m-estado').style.color = '#94a3b8';
-                logMsg("PARO DE EMERGENCIA Restablecido. Listo para rearranque.");
-            }
-        }
-
-        function dispararTrenPulsos() {
-            if (!sistemaActivo) { logMsg("Servomotor bloqueado: active START primero.", true); return; }
-            logMsg("⚡ PLC PTO -> Transmitiendo 2,000 pulsos a 1 kHz hacia Servomotor V90 (Estación 4)...");
-            let p = 0;
-            const interval = setInterval(() => {
-                p += 200;
-                pulsosActuales += 200;
-                document.getElementById('val-pulsos').innerHTML = `${p} <span style="font-size: 11px;">PULSOS</span>`;
-                document.getElementById('txt-vueltas').innerText = `${(p / 1000).toFixed(1)} rev`;
-                document.getElementById('m-pulsos-total').innerText = pulsosActuales.toLocaleString();
-                torqueActual = 2.45 + Math.random() * 0.15;
-                document.getElementById('m-torque').innerText = torqueActual.toFixed(2) + ' Nm';
-                if (p >= 2000) {
-                    clearInterval(interval);
-                    botellas++;
-                    document.getElementById('m-botellas').innerText = botellas;
-                    logMsg(`✔ Tapa roscada exitosamente con torque final: ${torqueActual.toFixed(2)} Nm. Total Botellas: ${botellas}`);
-                }
-            }, 100);
+            logMsg(`🚰 MANUAL: ${name} cambiada a ${estadoTexto}.`);
         }
 
         function updateTank(tank, val) {
             document.getElementById(`lbl-${tank}`).innerText = val + ' %';
-            if (tank === 'tk101') {
-                tk101 = parseFloat(val);
-                if (tk101 < 15) logMsg(`🚨 ALARMA ALM_01: Nivel crítico en TK-101 PVA (${tk101}% < 15%)`, true);
-            }
+            if (tank === 'tk101') tk101 = parseFloat(val);
             if (tank === 'tk102') tk102 = parseFloat(val);
             if (tank === 'tk103') tk103 = parseFloat(val);
-            if (tank === 'tk201') {
-                tk201 = parseFloat(val);
-                if (tk201 > 90) logMsg(`🚨 ALARMA ALM_02: Riesgo de desbordamiento en TK-201 (${tk201}% > 90%)`, true);
-            }
+            if (tank === 'tk201') tk201 = parseFloat(val);
         }
 
-        function updateVFD(val) {
-            vfdHz = parseFloat(val);
-            document.getElementById('lbl-vfd').innerText = vfdHz.toFixed(1) + ' Hz';
-            logMsg(`PLC Variador VFD: Frecuencia de banda ajustada a ${vfdHz.toFixed(1)} Hz`);
-        }
-
-        function setReceta(num) {
-            if (num === 1) logMsg("PLC RECETA 1: POLYFIX P-85 Industrial 1L (70% PVA, Llenado=5.0s, Torque=2.5Nm)");
-            if (num === 2) logMsg("PLC RECETA 2: POLYFIX P-85 Rápido (80% PVA, Llenado=3.5s, Torque=2.8Nm)");
-        }
-
-        // Bucle de actualización de gráficas
         setInterval(() => {
             const now = new Date().toLocaleTimeString();
             if (chartTorque.data.labels.length > 20) {
@@ -395,8 +369,8 @@
             }
 
             chartTorque.data.labels.push(now);
-            chartTorque.data.datasets[0].data.push(sistemaActivo ? torqueActual : 0);
-            chartTorque.data.datasets[1].data.push(3.8);
+            chartTorque.data.datasets[0].data.push(torqueActual);
+            chartTorque.data.datasets[1].data.push(2.5);
             chartTorque.update();
 
             chartTanks.data.labels.push(now);
