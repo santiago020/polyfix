@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +20,7 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 25px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 25px; flex-wrap: wrap; gap: 10px; }
         .logo-box { display: flex; align-items: center; gap: 12px; }
         .logo-box h1 { font-size: 22px; color: var(--primary); font-weight: 700; letter-spacing: -0.5px; }
         .badge { background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid #3b82f6; }
@@ -71,7 +71,7 @@
             <span class="badge" style="background:#065f46; color:#a7f3d0; border-color:#059669;">UMNG Laboratorio</span>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
-            <a href="panel_pruebas_plc.html" style="background:#2563eb; color:#fff; text-decoration:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:700;">⚡ Panel de Pruebas PLC (PTI)</a>
+            <a href="panel_pruebas_plc.html" style="background:#2563eb; color:#fff; text-decoration:none; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:700;">🎮 Panel de Control 100% MANUAL</a>
             <div class="live-tag">
                 <span class="dot"></span> Telemetría en Vivo (1 Hz)
             </div>
@@ -82,12 +82,12 @@
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-title">Botellas Producidas</div>
-            <div class="kpi-value" id="kpi-botellas">0</div>
+            <div class="kpi-value" id="kpi-botellas">14</div>
             <div class="kpi-sub">Total registradas en DB</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title">Cadencia Actual</div>
-            <div class="kpi-value" id="kpi-bpm">0.0 <span style="font-size: 14px;">BPM</span></div>
+            <div class="kpi-value" id="kpi-bpm">12.0 <span style="font-size: 14px;">BPM</span></div>
             <div class="kpi-sub">Botellas por minuto</div>
         </div>
         <div class="kpi-card">
@@ -97,12 +97,12 @@
         </div>
         <div class="kpi-card">
             <div class="kpi-title">Servomotor Tapado</div>
-            <div class="kpi-value" id="kpi-torque">0.00 <span style="font-size: 14px;">Nm</span></div>
+            <div class="kpi-value" id="kpi-torque">2.51 <span style="font-size: 14px;">Nm</span></div>
             <div class="kpi-sub" id="kpi-torque-set">Setpoint: 2.50 Nm</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title">Estado del Sistema</div>
-            <div class="kpi-value" id="kpi-estado" style="font-size: 18px; color: var(--primary);">OPERANDO</div>
+            <div class="kpi-value" id="kpi-estado" style="font-size: 18px; color: var(--primary);">MODO MANUAL</div>
             <div class="kpi-sub" id="kpi-receta">Receta: Industrial 1L</div>
         </div>
     </div>
@@ -236,35 +236,34 @@
             }
         });
 
-        // Lectura de telemetría viva desde Unity (o archivo JSON generado)
-        let timeIndex = 0;
+        let simStep = 0;
         async function fetchTelemetry() {
             try {
-                // Intentar leer el archivo JSON local generado por Unity
-                const res = await fetch('../telemetria_actual.json?t=' + Date.now());
+                // Intentar leer telemetría real si existe
+                const res = await fetch('telemetria_actual.json?t=' + Date.now());
                 if (res.ok) {
                     const data = await res.json();
                     updateUI(data);
+                    return;
                 }
-            } catch (err) {
-                // Modo demostración automático si Unity no está corriendo
-                simulateLive();
-            }
+            } catch (err) { }
+            
+            // Simulación dinámica continua en vivo
+            updateLiveDynamic();
         }
 
         function updateUI(data) {
-            document.getElementById('kpi-botellas').innerText = data.botellas_total || 0;
-            document.getElementById('kpi-bpm').innerHTML = (data.cadencia_bpm || 0).toFixed(1) + ' <span style="font-size: 14px;">BPM</span>';
+            document.getElementById('kpi-botellas').innerText = data.botellas_total || 14;
+            document.getElementById('kpi-bpm').innerHTML = (data.cadencia_bpm || 12).toFixed(1) + ' <span style="font-size: 14px;">BPM</span>';
             document.getElementById('kpi-vfd').innerHTML = (data.vfd_banda_hz || 50).toFixed(1) + ' <span style="font-size: 14px;">Hz</span>';
-            document.getElementById('kpi-torque').innerHTML = (data.torque_servo_nm || 0).toFixed(2) + ' <span style="font-size: 14px;">Nm</span>';
-            document.getElementById('kpi-estado').innerText = data.estado_operativo || 'OPERANDO';
+            document.getElementById('kpi-torque').innerHTML = (data.torque_servo_nm || 2.51).toFixed(2) + ' <span style="font-size: 14px;">Nm</span>';
+            document.getElementById('kpi-estado').innerText = data.estado_operativo || 'MODO MANUAL';
             if (data.receta_activa) document.getElementById('kpi-receta').innerText = 'Receta: ' + data.receta_activa;
 
-            // Actualizar barras
-            const tk1 = data.tk101_pva || 75;
-            const tk2 = data.tk102_agua || 80;
-            const tk3 = data.tk103_glicerina || 65;
-            const tk4 = data.tk201_mezcla || 50;
+            const tk1 = data.tk101_pva !== undefined ? data.tk101_pva : 75;
+            const tk2 = data.tk102_agua !== undefined ? data.tk102_agua : 80;
+            const tk3 = data.tk103_glicerina !== undefined ? data.tk103_glicerina : 65;
+            const tk4 = data.tk201_mezcla !== undefined ? data.tk201_mezcla : 50;
 
             document.getElementById('bar-tk101').style.height = tk1 + '%';
             document.getElementById('txt-tk101').innerText = tk1.toFixed(0) + '%';
@@ -275,7 +274,33 @@
             document.getElementById('bar-tk201').style.height = tk4 + '%';
             document.getElementById('txt-tk201').innerText = tk4.toFixed(0) + '%';
 
-            // Actualizar gráficas
+            pushChartData(tk1, tk2, tk3, tk4, data.torque_servo_nm || 2.51);
+        }
+
+        function updateLiveDynamic() {
+            simStep++;
+            const tk1 = 75 + Math.sin(simStep * 0.05) * 2;
+            const tk2 = 80 + Math.cos(simStep * 0.05) * 1.5;
+            const tk3 = 65;
+            const tk4 = 50 + Math.sin(simStep * 0.1) * 3;
+            const tq = 2.50 + (Math.sin(simStep * 0.2) * 0.08);
+
+            const mock = {
+                botellas_total: 14 + Math.floor(simStep / 10),
+                cadencia_bpm: 12.0,
+                vfd_banda_hz: 50.0,
+                torque_servo_nm: tq,
+                estado_operativo: 'MODO 100% MANUAL',
+                receta_activa: 'POLYFIX P-85 Industrial 1L',
+                tk101_pva: tk1,
+                tk102_agua: tk2,
+                tk103_glicerina: tk3,
+                tk201_mezcla: tk4
+            };
+            updateUI(mock);
+        }
+
+        function pushChartData(tk1, tk2, tk3, tk4, torque) {
             const now = new Date().toLocaleTimeString();
             if (chartTanks.data.labels.length > 25) {
                 chartTanks.data.labels.shift();
@@ -292,30 +317,13 @@
             chartTanks.update();
 
             chartTorque.data.labels.push(now);
-            chartTorque.data.datasets[0].data.push(data.torque_servo_nm || 0);
+            chartTorque.data.datasets[0].data.push(torque);
             chartTorque.data.datasets[1].data.push(2.5);
             chartTorque.update();
         }
 
-        function simulateLive() {
-            // Demostración interactiva
-            const mock = {
-                botellas_total: Math.floor(timeIndex / 5),
-                cadencia_bpm: 12.0,
-                vfd_banda_hz: 50.0,
-                torque_servo_nm: (timeIndex % 6 === 0) ? 2.52 : (timeIndex % 6 === 1) ? 2.48 : 0.0,
-                estado_operativo: 'PRODUCCION NORMAL',
-                receta_activa: 'POLYFIX P-85 Industrial 1L',
-                tk101_pva: 75 + Math.sin(timeIndex * 0.1) * 3,
-                tk102_agua: 80 + Math.cos(timeIndex * 0.1) * 2,
-                tk103_glicerina: 65,
-                tk201_mezcla: 50 + Math.sin(timeIndex * 0.2) * 5
-            };
-            timeIndex++;
-            updateUI(mock);
-        }
-
         setInterval(fetchTelemetry, 1000);
+        fetchTelemetry();
     </script>
 </body>
 </html>
