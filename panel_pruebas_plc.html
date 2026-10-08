@@ -373,6 +373,20 @@
                         }
                     }
 
+                    // Actualizar Sliders Visualmente para que actuen como monitores de los sensores
+                    function syncGauge(lbl_id, rng_id, value) {
+                        if (value !== undefined) {
+                            let v = parseFloat(value).toFixed(1);
+                            document.getElementById(lbl_id).innerText = v + ' %';
+                            document.getElementById(rng_id).value = v;
+                        }
+                    }
+
+                    syncGauge('lbl-tk101', 'rng-tk101', d.tk101_pva);
+                    syncGauge('lbl-tk102', 'rng-tk102', d.tk102_agua);
+                    syncGauge('lbl-tk103', 'rng-tk103', d.tk103_glicerina);
+                    syncGauge('lbl-tk201', 'rng-tk201', d.tk201_mezcla);
+
                     // Gráfica
                     const now = new Date().toLocaleTimeString();
                     if (chartTanks.data.labels.length > 20) {
