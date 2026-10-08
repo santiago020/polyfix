@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMI & Panel de Pruebas PLC S7-1500 (Control PTI y Dosificación)</title>
+    <title>HMI & Panel de Pruebas PLC S7-1500 (Control Manual de Válvulas y PTI)</title>
     <!-- Chart.js para gráficas dinámicas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -29,7 +29,7 @@
         .nav-link { color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; }
         .nav-link:hover { background: var(--card); }
 
-        .layout-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+        .layout-grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
         @media(max-width: 950px) { .layout-grid { grid-template-columns: 1fr; } }
 
         .panel-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
@@ -46,6 +46,15 @@
         .btn-emerg.active { background: #dc2626; color: white; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+        /* VÁLVULAS INTERACTIVAS CON SWITCHES */
+        .valves-list { display: flex; flex-direction: column; gap: 8px; }
+        .valve-row { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+        .valve-info { display: flex; flex-direction: column; gap: 2px; }
+        .valve-title { font-size: 12px; font-weight: 700; color: #f8fafc; }
+        .valve-sub { font-size: 10px; color: #94a3b8; }
+        .btn-valve { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #475569; background: #334155; color: #94a3b8; cursor: pointer; transition: all 0.2s; min-width: 85px; text-align: center; }
+        .btn-valve.active { background: #059669; border-color: #10b981; color: #ffffff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+
         /* Sliders de Señales */
         .signal-group { display: flex; flex-direction: column; gap: 10px; }
         .signal-row { display: flex; flex-direction: column; gap: 4px; }
@@ -53,13 +62,6 @@
         .signal-label b { color: #f8fafc; font-size: 13px; }
         input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #334155; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
-
-        /* Válvulas y Actuadores */
-        .valves-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .valve-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; }
-        .valve-name { font-size: 11px; font-weight: 700; color: #cbd5e1; }
-        .valve-status { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: #374151; color: #9ca3af; }
-        .valve-status.on { background: #065f46; color: #34d399; }
 
         /* Módulo PTI / Servomotor */
         .pto-card { background: #1e1b4b; border: 1px solid #4338ca; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -79,7 +81,7 @@
         .chart-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; height: 260px; }
 
         /* Log de Eventos y Alarmas */
-        .log-box { background: #000000; border: 1px solid var(--border); border-radius: 8px; padding: 10px; height: 130px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; display: flex; flex-direction: column; gap: 4px; }
+        .log-box { background: #000000; border: 1px solid var(--border); border-radius: 8px; padding: 10px; height: 140px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; display: flex; flex-direction: column; gap: 4px; }
         .log-alm { color: #f87171; font-weight: bold; }
         .log-ok { color: #4ade80; }
     </style>
@@ -88,7 +90,7 @@
     <header>
         <div class="h-title">
             <h1>🔬 HMI & BANCO DE PRUEBAS PLC S7-1500</h1>
-            <span class="tag-umng">Control PTI, Dosificación & I/O</span>
+            <span class="tag-umng">Control Manual de Válvulas & PTI</span>
         </div>
         <a href="index.html" class="nav-link">➔ Ir al Dashboard General</a>
     </header>
@@ -104,27 +106,42 @@
                 <button class="btn btn-emerg" id="btn-emerg" onclick="toggleEmergencia()">🚨 PARO DE EMERGENCIA</button>
             </div>
 
-            <div class="box-title">🚰 Válvulas de Dosificación y Mezclador (DO)</div>
-            <div class="valves-grid">
-                <div class="valve-card">
-                    <span class="valve-name">V101 (PVA)</span>
-                    <span class="valve-status" id="v-pva">CERRADA</span>
+            <div class="box-title">🚰 Control Directo de Válvulas (Abrir / Cerrar a Voluntad)</div>
+            <div class="valves-list">
+                <div class="valve-row">
+                    <div class="valve-info">
+                        <span class="valve-title">Válvula V101 (PVA)</span>
+                        <span class="valve-sub">Tanque TK-101 ➔ Reactor TK-201</span>
+                    </div>
+                    <button class="btn-valve" id="btn-v-pva" onclick="toggleValve('v-pva', 'V101 PVA')">CERRADA</button>
                 </div>
-                <div class="valve-card">
-                    <span class="valve-name">V102 (Agua)</span>
-                    <span class="valve-status" id="v-agua">CERRADA</span>
+                <div class="valve-row">
+                    <div class="valve-info">
+                        <span class="valve-title">Válvula V102 (Agua)</span>
+                        <span class="valve-sub">Tanque TK-102 ➔ Reactor TK-201</span>
+                    </div>
+                    <button class="btn-valve" id="btn-v-agua" onclick="toggleValve('v-agua', 'V102 Agua')">CERRADA</button>
                 </div>
-                <div class="valve-card">
-                    <span class="valve-name">V103 (Glicerina)</span>
-                    <span class="valve-status" id="v-glic">CERRADA</span>
+                <div class="valve-row">
+                    <div class="valve-info">
+                        <span class="valve-title">Válvula V103 (Glicerina)</span>
+                        <span class="valve-sub">Tanque TK-103 ➔ Reactor TK-201</span>
+                    </div>
+                    <button class="btn-valve" id="btn-v-glic" onclick="toggleValve('v-glic', 'V103 Glicerina')">CERRADA</button>
                 </div>
-                <div class="valve-card">
-                    <span class="valve-name">V201 (Llenado)</span>
-                    <span class="valve-status" id="v-llen">CERRADA</span>
+                <div class="valve-row">
+                    <div class="valve-info">
+                        <span class="valve-title">Válvula V201 (Llenado)</span>
+                        <span class="valve-sub">Boquilla de Dosificación a Botella</span>
+                    </div>
+                    <button class="btn-valve" id="btn-v-llen" onclick="toggleValve('v-llen', 'V201 Llenado Botella')">CERRADA</button>
                 </div>
-                <div class="valve-card" style="grid-column: span 2;">
-                    <span class="valve-name">M201 Agitador Reactor TK-201</span>
-                    <span class="valve-status" id="v-mezc">OFF</span>
+                <div class="valve-row">
+                    <div class="valve-info">
+                        <span class="valve-title">M201 Motor Agitador</span>
+                        <span class="valve-sub">Mezclador del Reactor TK-201</span>
+                    </div>
+                    <button class="btn-valve" id="btn-v-mezc" onclick="toggleValve('v-mezc', 'M201 Motor Agitador')">APAGADO</button>
                 </div>
             </div>
 
@@ -165,7 +182,6 @@
                 <button class="btn" style="background:#1e293b; border:1px solid #475569; color:#f8fafc;" onclick="setReceta(1)">1. Industrial 1L</button>
                 <button class="btn" style="background:#1e293b; border:1px solid #475569; color:#f8fafc;" onclick="setReceta(2)">2. Rápido (3.5s)</button>
             </div>
-            <button class="btn" style="background:#0284c7; color:#fff;" onclick="iniciarDosificacionLote()">🧪 Ejecutar Dosificación de Lote (V101+V102+V103)</button>
         </div>
 
         <!-- COLUMNA 2: MONITOREO EN TIEMPO REAL Y GRÁFICAS -->
@@ -174,7 +190,7 @@
                 <div class="metric-card">
                     <div class="metric-title">Estado PLC S7-1500</div>
                     <div class="metric-value" id="m-estado" style="color:var(--success);">RUN</div>
-                    <div class="metric-desc">Ciclo Automático Activo</div>
+                    <div class="metric-desc">Control Actuadores Activo</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Torque Servomotor</div>
@@ -208,7 +224,7 @@
                 <div class="box-title">📜 Registro de Transacciones en Vivo (PLC ➔ SQLite Database)</div>
                 <div class="log-box" id="log-console">
                     <div class="log-ok">[SISTEMA] Conexión establecida con el Gemelo Digital POLYFIX P-85.</div>
-                    <div class="log-ok">[PLC S7-1500] Controlador en modo RUN. Válvulas V101, V102, V103, V201 listas.</div>
+                    <div class="log-ok">[PLC S7-1500] Controlador en modo RUN. Válvulas V101, V102, V103, V201 listas para control manual o automático.</div>
                     <div>[SQLite] Base de datos local polyfix_produccion.db lista para inserciones de válvulas y recetas.</div>
                 </div>
             </div>
@@ -224,6 +240,14 @@
         let ptoHz = 1000;
         let vfdHz = 50.0;
         let tk101 = 75, tk102 = 80, tk103 = 65, tk201 = 50;
+
+        const valveStates = {
+            'v-pva': false,
+            'v-agua': false,
+            'v-glic': false,
+            'v-llen': false,
+            'v-mezc': false
+        };
 
         // Gráfica de Torque
         const ctxTorque = document.getElementById('chartTorqueLive').getContext('2d');
@@ -265,11 +289,20 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        function setValveUI(id, isOpen) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.className = isOpen ? 'valve-status on' : 'valve-status';
-            el.innerText = isOpen ? (id === 'v-mezc' ? 'ON' : 'ABIERTA') : (id === 'v-mezc' ? 'OFF' : 'CERRADA');
+        function toggleValve(id, name) {
+            if (emergencia) { logMsg("BLOQUEO: Paro de emergencia activo. Válvula bloqueada.", true); return; }
+            valveStates[id] = !valveStates[id];
+            const btn = document.getElementById(`btn-${id}`);
+            if (btn) {
+                btn.classList.toggle('active', valveStates[id]);
+                if (id === 'v-mezc') {
+                    btn.innerText = valveStates[id] ? 'ENCENDIDO' : 'APAGADO';
+                } else {
+                    btn.innerText = valveStates[id] ? 'ABIERTA' : 'CERRADA';
+                }
+            }
+            const estadoTexto = valveStates[id] ? (id === 'v-mezc' ? 'ENCENDIDO' : 'ABIERTA') : (id === 'v-mezc' ? 'APAGADO' : 'CERRADA');
+            logMsg(`🚰 MANUAL PLC: ${name} cambiada a ${estadoTexto}. Registro guardado en DB.`);
         }
 
         function setMarcha(val) {
@@ -288,45 +321,21 @@
                 sistemaActivo = false;
                 document.getElementById('m-estado').innerText = 'EMERGENCIA (ALM_03)';
                 document.getElementById('m-estado').style.color = '#ef4444';
-                setValveUI('v-pva', false);
-                setValveUI('v-agua', false);
-                setValveUI('v-glic', false);
-                setValveUI('v-llen', false);
-                setValveUI('v-mezc', false);
+                // Forzar cierre de todas las válvulas
+                for (let k in valveStates) {
+                    valveStates[k] = false;
+                    const b = document.getElementById(`btn-${k}`);
+                    if (b) {
+                        b.classList.remove('active');
+                        b.innerText = k === 'v-mezc' ? 'APAGADO' : 'CERRADA';
+                    }
+                }
                 logMsg("🚨 ALERTA ALM_03: Pulsador de Paro de Emergencia Activado. Todas las válvulas cerradas por seguridad.", true);
             } else {
                 document.getElementById('m-estado').innerText = 'STOP';
                 document.getElementById('m-estado').style.color = '#94a3b8';
                 logMsg("PARO DE EMERGENCIA Restablecido. Listo para rearranque.");
             }
-        }
-
-        function iniciarDosificacionLote() {
-            if (!sistemaActivo) { logMsg("Active START antes de dosificar.", true); return; }
-            logMsg("🧪 PLC: Iniciando Dosificación de Lote en TK-201 según receta en Base de Datos...");
-            setValveUI('v-pva', true);
-            setValveUI('v-agua', true);
-            setValveUI('v-glic', true);
-            setValveUI('v-mezc', true);
-
-            setTimeout(() => {
-                setValveUI('v-glic', false);
-                logMsg("Válvula V103 (Glicerina 10%) cerrada.");
-            }, 2000);
-
-            setTimeout(() => {
-                setValveUI('v-agua', false);
-                logMsg("Válvula V102 (Agua 20%) cerrada.");
-            }, 3000);
-
-            setTimeout(() => {
-                setValveUI('v-pva', false);
-                setValveUI('v-mezc', false);
-                tk201 = 85;
-                document.getElementById('lbl-tk201').innerText = '85 %';
-                document.getElementById('rng-tk201').value = 85;
-                logMsg("✔ Válvula V101 (PVA 70%) cerrada. Agitación finalizada. TK-201 al 85%. Guardado en SQLite.");
-            }, 5000);
         }
 
         function dispararTrenPulsos() {
