@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMI & Panel de Pruebas PLC S7-1500 (Control PTI / PTO)</title>
+    <!-- Chart.js para gráficas dinámicas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #090d16;
+            --panel: #111827;
+            --card: #1e293b;
+            --border: #334155;
+            --primary: #38bdf8;
+            --accent: #2563eb;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --purple: #a855f7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #f8fafc; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .h-title { display: flex; align-items: center; gap: 12px; }
+        .h-title h1 { font-size: 20px; color: var(--primary); font-weight: 700; }
+        .tag-umng { background: #065f46; color: #6ee7b7; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid #059669; }
+        .nav-link { color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; }
+        .nav-link:hover { background: var(--card); }
+
+        .layout-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+        @media(max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+
+        .panel-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+        .box-title { font-size: 14px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+        /* Controles y Botones */
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-start { background: #15803d; color: white; }
+        .btn-start:hover { background: #16a34a; }
+        .btn-stop { background: #991b1b; color: white; }
+        .btn-stop:hover { background: #dc2626; }
+        .btn-emerg { grid-column: span 2; background: #7f1d1d; color: #fecaca; border: 1px solid #b91c1c; font-size: 14px; padding: 12px; }
+        .btn-emerg.active { background: #dc2626; color: white; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Sliders de Señales */
+        .signal-group { display: flex; flex-direction: column; gap: 10px; }
+        .signal-row { display: flex; flex-direction: column; gap: 4px; }
+        .signal-label { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; font-weight: 600; }
+        .signal-label b { color: #f8fafc; font-size: 13px; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #334155; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
+
+        /* Módulo PTI / Servomotor */
+        .pto-card { background: #1e1b4b; border: 1px solid #4338ca; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .pto-val { font-size: 20px; font-weight: 800; color: #a5b4fc; font-family: monospace; }
+        .pto-sub { font-size: 11px; color: #818cf8; }
+
+        /* Pantalla de Monitoreo / Gráficas */
+        .monitor-col { display: flex; flex-direction: column; gap: 20px; }
+        .metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .metric-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+        .metric-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+        .metric-value { font-size: 24px; font-weight: 800; color: #fff; }
+        .metric-desc { font-size: 11px; color: var(--primary); }
+
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media(max-width: 1100px) { .charts-container { grid-template-columns: 1fr; } }
+        .chart-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; height: 260px; }
+
+        /* Log de Eventos y Alarmas */
+        .log-box { background: #000000; border: 1px solid var(--border); border-radius: 8px; padding: 10px; height: 130px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; display: flex; flex-direction: column; gap: 4px; }
+        .log-alm { color: #f87171; font-weight: bold; }
+        .log-ok { color: #4ade80; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="h-title">
+            <h1>🔬 HMI & BANCO DE PRUEBAS PLC S7-1500</h1>
+            <span class="tag-umng">Control PTI / Pulsos & I/O</span>
+        </div>
+        <a href="index.html" class="nav-link">➔ Ir al Dashboard General</a>
+    </header>
+
+    <div class="layout-grid">
+        <!-- COLUMNA 1: CONTROLES DEL PLC Y TRANSMISIÓN PTI -->
+        <div class="panel-box">
+            <div class="box-title">🎮 Mando de Planta Físico (DI)</div>
+            
+            <div class="btn-group">
+                <button class="btn btn-start" onclick="setMarcha(true)">▶ START (M0.0)</button>
+                <button class="btn btn-stop" onclick="setMarcha(false)">⏹ STOP (M0.1)</button>
+                <button class="btn btn-emerg" id="btn-emerg" onclick="toggleEmergencia()">🚨 PARO DE EMERGENCIA</button>
+            </div>
+
+            <div class="box-title">⚡ Control Servomotor PTI (Pulsos)</div>
+            <div class="pto-card">
+                <div class="signal-label">Tren de Pulsos PTO (Siemens V90): <span id="txt-pto-hz">1,000 Hz</span></div>
+                <div class="pto-val" id="val-pulsos">0 <span style="font-size: 12px;">PULSOS</span></div>
+                <div class="pto-sub">Vueltas Calculadas: <b id="txt-vueltas">0.0 rev</b> | Resolución: 1,000 PPR</div>
+                <button class="btn" style="background:#4338ca; color:#fff;" onclick="dispararTrenPulsos()">⚡ Enviar Ráfaga PTI (720° / 2 Vueltas)</button>
+            </div>
+
+            <div class="box-title">🎛️ Transmisores Analógicos (PCB AI)</div>
+            <div class="signal-group">
+                <div class="signal-row">
+                    <div class="signal-label"><span>TK-101 (Materia PVA)</span><b id="lbl-tk101">75 %</b></div>
+                    <input type="range" id="rng-tk101" min="0" max="100" value="75" oninput="updateTank('tk101', this.value)">
+                </div>
+                <div class="signal-row">
+                    <div class="signal-label"><span>TK-102 (Agua de Proceso)</span><b id="lbl-tk102">80 %</b></div>
+                    <input type="range" id="rng-tk102" min="0" max="100" value="80" oninput="updateTank('tk102', this.value)">
+                </div>
+                <div class="signal-row">
+                    <div class="signal-label"><span>TK-103 (Glicerina)</span><b id="lbl-tk103">65 %</b></div>
+                    <input type="range" id="rng-tk103" min="0" max="100" value="65" oninput="updateTank('tk103', this.value)">
+                </div>
+                <div class="signal-row">
+                    <div class="signal-label"><span>TK-201 (Reactor Mezcla P-85)</span><b id="lbl-tk201">50 %</b></div>
+                    <input type="range" id="rng-tk201" min="0" max="100" value="50" oninput="updateTank('tk201', this.value)">
+                </div>
+                <div class="signal-row">
+                    <div class="signal-label"><span>Variador VFD Banda (0-60 Hz)</span><b id="lbl-vfd">50.0 Hz</b></div>
+                    <input type="range" id="rng-vfd" min="0" max="60" value="50" oninput="updateVFD(this.value)">
+                </div>
+            </div>
+
+            <div class="box-title">📋 Recetas PLC (Ítem 7)</div>
+            <div class="btn-group">
+                <button class="btn" style="background:#1e293b; border:1px solid #475569; color:#f8fafc;" onclick="setReceta(1)">1. Industrial 1L</button>
+                <button class="btn" style="background:#1e293b; border:1px solid #475569; color:#f8fafc;" onclick="setReceta(2)">2. Rápido (3.5s)</button>
+            </div>
+        </div>
+
+        <!-- COLUMNA 2: MONITOREO EN TIEMPO REAL Y GRÁFICAS -->
+        <div class="monitor-col">
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <div class="metric-title">Estado PLC S7-1500</div>
+                    <div class="metric-value" id="m-estado" style="color:var(--success);">RUN</div>
+                    <div class="metric-desc">Ciclo Automático Activo</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Torque Servomotor</div>
+                    <div class="metric-value" id="m-torque">2.51 <span style="font-size:14px;">Nm</span></div>
+                    <div class="metric-desc">Setpoint Receta: 2.50 Nm</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Pulsos Acumulados (PTI)</div>
+                    <div class="metric-value" id="m-pulsos-total" style="color:var(--purple);">2,000</div>
+                    <div class="metric-desc">Tecnología TO S7-1500</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Botellas Producidas</div>
+                    <div class="metric-value" id="m-botellas">14</div>
+                    <div class="metric-desc">Registradas en SQLite (.db)</div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-box">
+                    <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:8px;">📊 CURVA DE PAR DE APRIETE SERVOMOTOR (Nm)</div>
+                    <canvas id="chartTorqueLive"></canvas>
+                </div>
+                <div class="chart-box">
+                    <div style="font-size:12px; font-weight:700; color:#94a3b8; margin-bottom:8px;">🛢️ NIVELES ANALÓGICOS DE TANQUES (% PCB)</div>
+                    <canvas id="chartTanksLive"></canvas>
+                </div>
+            </div>
+
+            <div class="panel-box">
+                <div class="box-title">📜 Registro de Transacciones en Vivo (PLC ➔ SQLite Database)</div>
+                <div class="log-box" id="log-console">
+                    <div class="log-ok">[SISTEMA] Conexión establecida con el Gemelo Digital POLYFIX P-85.</div>
+                    <div class="log-ok">[PLC S7-1500] Controlador en modo RUN. Tecnologias TO_Positioning activas.</div>
+                    <div>[SQLite] Base de datos local polyfix_produccion.db lista para inserciones.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sistemaActivo = true;
+        let emergencia = false;
+        let pulsosActuales = 0;
+        let botellas = 14;
+        let torqueActual = 2.51;
+        let ptoHz = 1000;
+        let vfdHz = 50.0;
+        let tk101 = 75, tk102 = 80, tk103 = 65, tk201 = 50;
+
+        // Gráfica de Torque
+        const ctxTorque = document.getElementById('chartTorqueLive').getContext('2d');
+        const chartTorque = new Chart(ctxTorque, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Torque Medido (Nm)', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 0 },
+                    { label: 'Límite Máximo (3.8 Nm)', data: [], borderColor: '#ef4444', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 4.5, ticks: { color: '#64748b' } } }, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } } }
+        });
+
+        // Gráfica de Tanques
+        const ctxTanks = document.getElementById('chartTanksLive').getContext('2d');
+        const chartTanks = new Chart(ctxTanks, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'TK-101 PVA', data: [], borderColor: '#ffffff', tension: 0.3, borderWidth: 1.5, pointRadius: 0 },
+                    { label: 'TK-102 Agua', data: [], borderColor: '#38bdf8', tension: 0.3, borderWidth: 1.5, pointRadius: 0 },
+                    { label: 'TK-103 Glic', data: [], borderColor: '#facc15', tension: 0.3, borderWidth: 1.5, pointRadius: 0 },
+                    { label: 'TK-201 Mezcla', data: [], borderColor: '#cbd5e1', tension: 0.3, borderWidth: 2, pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 100, ticks: { color: '#64748b' } } }, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } } }
+        });
+
+        function logMsg(msg, isAlm = false) {
+            const box = document.getElementById('log-console');
+            const d = document.createElement('div');
+            d.className = isAlm ? 'log-alm' : '';
+            const t = new Date().toLocaleTimeString();
+            d.innerText = `[${t}] ${msg}`;
+            box.appendChild(d);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function setMarcha(val) {
+            if (emergencia) { logMsg("BLOQUEO: No se puede arrancar con Parada de Emergencia activa.", true); return; }
+            sistemaActivo = val;
+            document.getElementById('m-estado').innerText = val ? 'RUN' : 'STOP';
+            document.getElementById('m-estado').style.color = val ? 'var(--success)' : '#ef4444';
+            logMsg(val ? "COMANDO PLC: START (M0.0) -> Marcha de línea iniciada." : "COMANDO PLC: STOP (M0.1) -> Línea detenida.");
+        }
+
+        function toggleEmergencia() {
+            emergencia = !emergencia;
+            const btn = document.getElementById('btn-emerg');
+            btn.classList.toggle('active', emergencia);
+            if (emergencia) {
+                sistemaActivo = false;
+                document.getElementById('m-estado').innerText = 'EMERGENCIA (ALM_03)';
+                document.getElementById('m-estado').style.color = '#ef4444';
+                logMsg("🚨 ALERTA ALM_03: Pulsador de Paro de Emergencia Activado.", true);
+            } else {
+                document.getElementById('m-estado').innerText = 'STOP';
+                document.getElementById('m-estado').style.color = '#94a3b8';
+                logMsg("PARO DE EMERGENCIA Restablecido. Listo para rearranque.");
+            }
+        }
+
+        function dispararTrenPulsos() {
+            if (!sistemaActivo) { logMsg("Servomotor bloqueado: active START primero.", true); return; }
+            logMsg("⚡ PLC PTO -> Transmitiendo 2,000 pulsos a 1 kHz hacia Servomotor V90 (Estación 4)...");
+            let p = 0;
+            const interval = setInterval(() => {
+                p += 200;
+                pulsosActuales += 200;
+                document.getElementById('val-pulsos').innerHTML = `${p} <span style="font-size: 12px;">PULSOS</span>`;
+                document.getElementById('txt-vueltas').innerText = `${(p / 1000).toFixed(1)} rev`;
+                document.getElementById('m-pulsos-total').innerText = pulsosActuales.toLocaleString();
+                torqueActual = 2.45 + Math.random() * 0.15;
+                document.getElementById('m-torque').innerText = torqueActual.toFixed(2) + ' Nm';
+                if (p >= 2000) {
+                    clearInterval(interval);
+                    botellas++;
+                    document.getElementById('m-botellas').innerText = botellas;
+                    logMsg(`✔ Tapa roscada exitosamente con torque final: ${torqueActual.toFixed(2)} Nm. Total Botellas: ${botellas}`);
+                }
+            }, 100);
+        }
+
+        function updateTank(tank, val) {
+            document.getElementById(`lbl-${tank}`).innerText = val + ' %';
+            if (tank === 'tk101') {
+                tk101 = parseFloat(val);
+                if (tk101 < 15) logMsg(`🚨 ALARMA ALM_01: Nivel crítico en TK-101 PVA (${tk101}% < 15%)`, true);
+            }
+            if (tank === 'tk102') tk102 = parseFloat(val);
+            if (tank === 'tk103') tk103 = parseFloat(val);
+            if (tank === 'tk201') {
+                tk201 = parseFloat(val);
+                if (tk201 > 90) logMsg(`🚨 ALARMA ALM_02: Riesgo de desbordamiento en TK-201 (${tk201}% > 90%)`, true);
+            }
+        }
+
+        function updateVFD(val) {
+            vfdHz = parseFloat(val);
+            document.getElementById('lbl-vfd').innerText = vfdHz.toFixed(1) + ' Hz';
+            logMsg(`PLC Variador VFD: Frecuencia de banda ajustada a ${vfdHz.toFixed(1)} Hz`);
+        }
+
+        function setReceta(num) {
+            if (num === 1) logMsg("PLC RECETA 1: POLYFIX P-85 Industrial 1L (70% PVA, Llenado=5.0s, Torque=2.5Nm)");
+            if (num === 2) logMsg("PLC RECETA 2: POLYFIX P-85 Rápido (80% PVA, Llenado=3.5s, Torque=2.8Nm)");
+        }
+
+        // Bucle de actualización de gráficas
+        setInterval(() => {
+            const now = new Date().toLocaleTimeString();
+            if (chartTorque.data.labels.length > 20) {
+                chartTorque.data.labels.shift();
+                chartTorque.data.datasets.forEach(d => d.data.shift());
+                chartTanks.data.labels.shift();
+                chartTanks.data.datasets.forEach(d => d.data.shift());
+            }
+
+            chartTorque.data.labels.push(now);
+            chartTorque.data.datasets[0].data.push(sistemaActivo ? torqueActual : 0);
+            chartTorque.data.datasets[1].data.push(3.8);
+            chartTorque.update();
+
+            chartTanks.data.labels.push(now);
+            chartTanks.data.datasets[0].data.push(tk101);
+            chartTanks.data.datasets[1].data.push(tk201);
+            chartTanks.data.datasets[2].data.push(tk102);
+            chartTanks.data.datasets[3].data.push(tk103);
+            chartTanks.update();
+        }, 1000);
+    </script>
+</body>
+</html>
